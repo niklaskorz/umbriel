@@ -330,6 +330,15 @@ namespace umbriel::configmerge {
             continue;
           }
         }
+      } else if (const auto* overlayArray = value.as_array()) {
+        if (auto* baseNode = base.get(key)) {
+          if (auto* baseArray = baseNode->as_array()) {
+            for (const auto& elem : *overlayArray) {
+              baseArray->push_back(elem);
+            }
+            continue;
+          }
+        }
       }
       base.insert_or_assign(key, value);
     }
@@ -341,6 +350,18 @@ namespace umbriel::configmerge {
         if (auto* baseNode = base.get(key)) {
           if (auto* baseTable = baseNode->as_table()) {
             deepMerge(*baseTable, std::move(*overlayTable));
+            continue;
+          }
+        }
+      } else if (auto* overlayArray = value.as_array()) {
+        if (auto* baseNode = base.get(key)) {
+          if (auto* baseArray = baseNode->as_array()) {
+            for (auto&& elem : *overlayArray) {
+              elem.visit([&](auto&& val) {
+                using T = std::decay_t<decltype(val)>;
+                baseArray->push_back(T(std::move(val)));
+              });
+            }
             continue;
           }
         }
